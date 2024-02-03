@@ -15,7 +15,7 @@ screen_width = 1280
 screen_height = 720
 screen = pygame.display.set_mode((screen_width, screen_height))
 clock = pygame.time.Clock()
-FPS = 6
+FPS = 30
 background_color = "black"
 running = True
 
@@ -24,12 +24,15 @@ G = 1
 
 # set up bodies for test
 bodies = []
-# v1 = Vector(5,0)
-# b1 = Body((640, 210), 1, v1, 5, "blue")
-# v2 = Vector(0,0)
-# b2 = Body((640, 360), 25, v2, 20, "green")
-# bodies.append(b1)
-# bodies.append(b2)
+v1 = Vector(10,0)
+b1 = Body((640, 160), 10, v1, 10, "blue")
+v2 = Vector(0,0)
+b2 = Body((640, 360), 100, v2, 20, "green")
+v3 = Vector(-10,0)
+b3 = Body((640, 560), 10, v3, 10, "red")
+bodies.append(b1)
+bodies.append(b2)
+bodies.append(b3)
 
 while running:
     # poll for events
@@ -76,8 +79,10 @@ while running:
             # take current acceleration vector from all other bodies and add calulated acceleration vector to it
             accelerations[body1] = accelerations[body1] + acceleration_vector1
             accelerations[body2] = accelerations[body2] + acceleration_vector2
-        for k,v in accelerations.items(): print(k,'\n', v, '\n')
+        #for k,v in accelerations.items(): print(k,'\n', v, '\n')
 
+    # debugging code
+    """
     # try to draw velocity vectors on screen for debugging purposes
     scale = 10
     for body in bodies:
@@ -90,6 +95,7 @@ while running:
     b4 = Body(pygame.mouse.get_pos(), 0, Vector(0,0), 20, 'red')
     unit_vector = b3.unit_vector_towards(b4) * scale
     pygame.draw.line(screen, 'red', (b3.x, b3.y), (b3.x+unit_vector.x, b3.y+unit_vector.y))
+    """
 
     # apply accelerations to each body
     for body in bodies:
@@ -99,10 +105,10 @@ while running:
         body.x += body.velocity.x
         body.y += body.velocity.y
 
-
     # flip() the display to put your work on screen
     pygame.display.flip()
 
-    clock.tick(FPS)  # limits FPS to 60
+    # limits FPS to 60
+    clock.tick(FPS)  
 
 pygame.quit()
