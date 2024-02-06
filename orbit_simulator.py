@@ -36,7 +36,7 @@ slider_font_size=15
 slider_width=150
 left = pygame_menu.locals.ALIGN_LEFT
 
-# set up variables for slowing the program
+# set up variables for slowing the progression of time
 counter = 0
 wait = 1
 
@@ -51,11 +51,25 @@ menu.add.range_slider("Speed of time", FPS, (0, FPS), 1, speed_slider_change, fo
 # G slider setup
 def G_slider_change(value):
     global G
+    global frames_list
     G = value
+    frames_list = []
 G_min = 0
 G_max = 10
 G = 1
 menu.add.range_slider("Gravitational Constant G", 1, (G_min, G_max), 1, G_slider_change, font_size=slider_font_size, width=slider_width, align=left)
+
+# setup toggle switch for toggling body paths
+def paths_toggle_change(value):
+    global paths
+    if value == "Off": paths = False
+    else: paths = True
+menu.add.toggle_switch("Body paths", True, paths_toggle_change, state_values=("Off", "On"), font_size=slider_font_size)
+
+# set up variables for path generation
+paths = True
+frames = FPS*5
+frames_list = []
 
 # create generator for body colors
 # cycles through the color list
@@ -75,10 +89,6 @@ create_new_object = False
 object_created = False
 pause = False
 
-# set up frames list
-frames = FPS
-frames_list = []
-
 # set up bodies for test
 bodies = []
 v1 = Vector(10,0)
@@ -89,7 +99,7 @@ v3 = Vector(-10,0)
 b3 = Body((640, 560), 10, v3, 10, "red")
 bodies.append(b1)
 bodies.append(b2)
-# bodies.append(b3)
+bodies.append(b3)
 
 while running:
     # poll for events
@@ -126,35 +136,18 @@ while running:
     # handle body creation
     if create_new_object == True:
         if object_created == False:
-            new_object = Body(mouse_pos, 50, Vector(0,0), 10, next(body_color))
+            new_object = Body(mouse_pos, 10, Vector(0,0), 10, next(body_color))
             bodies.append(new_object)
             object_created = True
+            frames_list=[]
         else:
             create_new_object = False
-
-    # draw bodies and then body paths
-    for frame in frames_list:
-        if frame == frames_list[0]:
-            for body in frame:
-                pygame.draw.circle(screen, body.color, (body.x, body.y), body.radius)
-        else:
-            print('frame')
-            for body in frame:
-                pygame.draw.circle(screen, body.color, (body.x, body.y), 1)
-    
-    # draw bodies
-    # for body in bodies:
-    #     pygame.draw.circle(screen, body.color, (body.x, body.y), body.radius)
 
     # only apply forces if the game is not paused
     if pause == False and counter%wait==0:
         # generate frames list if necessary
         if frames_list == []:
             frames_list = generate_frames_list(bodies, G, frames)
-            # for f in frames_list:
-            #     for b in f:
-            #         print(b)
-            # print()
         # generate next frame from the last element of the list and add it to the end
         next_frame = generate_next_frame(frames_list[-1], G)
         frames_list.append(next_frame)
@@ -162,22 +155,15 @@ while running:
         current_frame = frames_list.pop(0)
         bodies = current_frame
 
-
-    # debugging code
-    """
-    # try to draw velocity vectors on screen for debugging purposes
-    scale = 10
-    for body in bodies:
-        line_v = accelerations[body] * scale
-        pygame.draw.line(screen, 'red', (body.x, body.y), (body.x + line_v.x, body.y + line_v.y), width= 3)
-    
-    # test unit vector creator
-    scale = 100
-    b3 = Body((350,350),0,Vector(0,0),20,'red')
-    b4 = Body(pygame.mouse.get_pos(), 0, Vector(0,0), 20, 'red')
-    unit_vector = b3.unit_vector_towards(b4) * scale
-    pygame.draw.line(screen, 'red', (b3.x, b3.y), (b3.x+unit_vector.x, b3.y+unit_vector.y))
-    """
+    # draw bodies and then body paths
+    for frame in frames_list:
+        # draw bodies
+        for body in frames_list[0]:
+            pygame.draw.circle(screen, body.color, (body.x, body.y), body.radius)
+        # draw paths only if paths is True
+        if paths == False: break
+        for body in frame:
+                pygame.draw.circle(screen, body.color, (body.x, body.y), 1)
 
     # menu updating
     if menu.is_enabled():

@@ -77,6 +77,7 @@ class Body:
     def __repr__(self):
         return f"Body: x: {self.x}, y: {self.y}, mass: {self.mass}, velocity: {self.velocity}"
 
+
 # get acceleration vectors on each body due to gravity
 def acceleration_vectors(body1, body2, G):
     # get masses
@@ -102,7 +103,7 @@ def generate_next_frame(bodies: list, G) -> list:
     # learned that the hard way LMAO couldn't figure out how the simulator was working without the frames list working: bodies was being modified in place!!!
     # can't reassign it because it keeps the references
     # can't use .copy() because it still keeps the refernces to the body objects what a mess
-    
+
     # go through and reinitialize every body in the frame as a new object with a new refernce because wtf
     new_bodies = []
     for body in bodies:
@@ -135,16 +136,14 @@ def generate_next_frame(bodies: list, G) -> list:
     for body in new_bodies:
         body.x += body.velocity.x
         body.y += body.velocity.y
-    print(bodies)
-    print(new_bodies, '\n')
     return new_bodies
 
 # generate list of n frames into the future
 # each list of frames is a list of new_bodies in that frame 
-def generate_frames_list(new_bodies: list, G,  n: int) -> list:
+def generate_frames_list(bodies: list, G,  n: int) -> list:
     # set up frames list and generate first frame to be used for the rest
     frames_list = []
-    frames_list.append(generate_next_frame(new_bodies, G))
+    frames_list.append(generate_next_frame(bodies, G))
     # for as many frames as n, look at the last item of the list and generate the next frame from it and add it to the list
     for i in range(n):
         previous = frames_list[-1]
