@@ -1,6 +1,5 @@
 import pygame
 import pygame_menu
-import os, sys
 from orbit_simulator_classes import Vector, Body, generate_frames_list, generate_next_frame
 
 # pygame setup
@@ -41,12 +40,13 @@ counter = 0
 wait = 1
 
 # speed slider setup
+default_speed = 10
+max_speed = 10
 def speed_slider_change(value):
     global wait
-    adjusted_value = value-1
-    adjusted_value = round(FPS-adjusted_value)
-    wait = adjusted_value
-menu.add.range_slider("Speed of time", FPS, (0, FPS), 1, speed_slider_change, font_size=slider_font_size, width=slider_width, align=left)
+    diff = max_speed - value
+    wait = round(diff) + 1
+menu.add.range_slider("Speed of time", default_speed, (0, max_speed), 1, speed_slider_change, font_size=slider_font_size, width=slider_width, align=left)
 
 # G slider setup
 def G_slider_change(value):
@@ -60,15 +60,25 @@ G = 1
 menu.add.range_slider("Gravitational Constant G", 1, (G_min, G_max), 1, G_slider_change, font_size=slider_font_size, width=slider_width, align=left)
 
 # setup toggle switch for toggling body paths
+default_paths = False
 def paths_toggle_change(value):
     global paths
     if value == "Off": paths = False
     else: paths = True
-menu.add.toggle_switch("Body paths", True, paths_toggle_change, state_values=("Off", "On"), font_size=slider_font_size)
+menu.add.toggle_switch("Body paths", default_paths, paths_toggle_change, state_values=("Off", "On"), font_size=slider_font_size, align=left)
+
+# body path length slider setup
+default_paths_length = 1
+max_paths_length = 20
+def paths_length_change(value):
+    global paths_length
+    paths_length = round(value*FPS)
+menu.add.range_slider("Path length", default_paths_length, (1/FPS, max_paths_length), 1, paths_length_change, width=slider_width, align=left, font_size=slider_font_size)
 
 # set up variables for path generation
-paths = True
-frames = FPS*5
+paths = default_paths
+paths_length = FPS*default_paths_length
+frames = FPS*max_paths_length
 frames_list = []
 
 # create generator for body colors
@@ -143,11 +153,12 @@ while running:
         else:
             create_new_object = False
 
-    # only apply forces if the game is not paused
+    # always make sure there is a frames list to be rendered so it doesn't skip
+    if frames_list == []:
+        frames_list = generate_frames_list(bodies, G, frames)
+    # only apply forces and transition frames if the game is not paused and every wait frames
     if pause == False and counter%wait==0:
         # generate frames list if necessary
-        if frames_list == []:
-            frames_list = generate_frames_list(bodies, G, frames)
         # generate next frame from the last element of the list and add it to the end
         next_frame = generate_next_frame(frames_list[-1], G)
         frames_list.append(next_frame)
@@ -156,7 +167,7 @@ while running:
         bodies = current_frame
 
     # draw bodies and then body paths
-    for frame in frames_list:
+    for frame in frames_list[:paths_length]:
         # draw bodies
         for body in frames_list[0]:
             pygame.draw.circle(screen, body.color, (body.x, body.y), body.radius)
