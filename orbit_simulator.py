@@ -1,6 +1,7 @@
 import pygame
 import pygame_menu
-from orbit_simulator_classes import Body, Vector
+import os, sys
+from orbit_simulator_classes import Vector, Body, generate_frames_list, generate_next_frame
 
 # pygame setup
 pygame.init()
@@ -8,16 +9,10 @@ screen_width = 1500
 screen_height = 720
 screen = pygame.display.set_mode((screen_width, screen_height))
 clock = pygame.time.Clock()
-FPS = 30
+FPS = 60
 black = (0, 0, 0)
 background_color = black
 running = True
-
-# pygame menu setup
-menu_width = 400
-menu_height = 100
-theme = pygame_menu.themes.Theme(background_color=background_color, border_color=black)
-menu = pygame_menu.Menu('Menu', menu_width, menu_height, position=(0,0), surface=screen, theme=theme)
 
 # text setup
 font = pygame.font.SysFont("timesnewroman", 25)
@@ -30,9 +25,28 @@ click_anywhere_text_rect.center = (screen_width//2, screen_height - 10)
 body_creation_text = font.render("Scroll to adjust size\nUse + and - to change mass", True, text_color, background_color)
 body_creation_text_rect = body_creation_text.get_rect()
 
+# pygame menu setup
+menu_width = 400
+menu_height = 200
+theme = pygame_menu.themes.Theme(background_color=background_color, border_color=black)
+menu = pygame_menu.Menu('Menu', menu_width, menu_height, position=(0,0), surface=screen, theme=theme)
+
 # slider setup
-slider_font_size=10
+slider_font_size=15
+slider_width=150
 left = pygame_menu.locals.ALIGN_LEFT
+
+# set up variables for slowing the program
+counter = 0
+wait = 1
+
+# speed slider setup
+def speed_slider_change(value):
+    global wait
+    adjusted_value = value-1
+    adjusted_value = round(FPS-adjusted_value)
+    wait = adjusted_value
+menu.add.range_slider("Speed of time", FPS, (0, FPS), 1, speed_slider_change, font_size=slider_font_size, width=slider_width, align=left)
 
 # G slider setup
 def G_slider_change(value):
@@ -41,7 +55,7 @@ def G_slider_change(value):
 G_min = 0
 G_max = 10
 G = 1
-menu.add.range_slider("Gravitational Constant G", 1, (G_min, G_max), 1, G_slider_change, font_size=slider_font_size, width=150, align=left)
+menu.add.range_slider("Gravitational Constant G", 1, (G_min, G_max), 1, G_slider_change, font_size=slider_font_size, width=slider_width, align=left)
 
 # create generator for body colors
 # cycles through the color list
@@ -61,9 +75,9 @@ create_new_object = False
 object_created = False
 pause = False
 
-# set up variables for slowing the program
-counter = 0
-wait = 1
+# set up frames list
+frames = FPS
+frames_list = []
 
 # set up bodies for test
 bodies = []
@@ -75,7 +89,7 @@ v3 = Vector(-10,0)
 b3 = Body((640, 560), 10, v3, 10, "red")
 bodies.append(b1)
 bodies.append(b2)
-bodies.append(b3)
+# bodies.append(b3)
 
 while running:
     # poll for events
@@ -87,11 +101,8 @@ while running:
         # only start body creation sequence if they click and a new one isn't being created
         if event.type ==  pygame.MOUSEBUTTONDOWN and create_new_object == False:
             mouse_pos = event.pos
-            # if the menu is enabled and the mouse is on it do nothing
-            # if the menu is disabled or the mouse isn't on it then start body creation
-            if menu.is_enabled() and mouse_pos[0]<menu_width and mouse_pos[1]<menu_height:
-                pass
-            else:
+            # if the menu is enabled and the mouse is on it then don't start new object creation
+            if not(menu.is_enabled() and mouse_pos[0]<menu_width and mouse_pos[1]<menu_height):
                 button = event.button
                 if button == 1:
                     create_new_object = True
@@ -106,17 +117,11 @@ while running:
                 else:
                     menu.enable()
 
-    # gravitational constant
-
     # fill the screen with a color to wipe away anything from last frame
     screen.fill(background_color)
 
     # render text telling user to click anywhere to create new body
     screen.blit(click_anywhere_text, click_anywhere_text_rect)
-
-    # draw bodies
-    for body in bodies:
-        pygame.draw.circle(screen, body.color, (body.x, body.y), body.radius)
 
     # handle body creation
     if create_new_object == True:
@@ -127,46 +132,36 @@ while running:
         else:
             create_new_object = False
 
-    # only apply forces if the game is not paused 
-    if pause == False and counter%wait==0:
-        # set up accelerations set with 0 accelerations on every body to start
-        accelerations = {body: Vector(0,0) for body in bodies}
-        l = len(bodies)
-        # for each body in the system, look at every body past it in the list and apply its gravitational force to the combined acceleration
-        # this should cover every pair of interacting bodies
-        for i in range(l-1):
-            # get values for first body
-            body1 = bodies[i]
-            mass1 = body1.mass
-            # go through the rest in the list
-            for j in range(i+1, l):
-                # for each first body get values for each one after it
-                body2 = bodies[j]
-                mass2 = body2.mass
-                # find distance between bodies
-                distance = body1.distance_to(body2)
-                # find magnitudes of force vectors on each body
-                acceleration_magnitude1 = G*mass2/(distance)
-                acceleration_magnitude2 = G*mass1/(distance)
-                # get unit vectors in direction of other body for each one
-                unit_vector1 = body1.unit_vector_towards(body2)
-                unit_vector2 = body2.unit_vector_towards(body1)
-                # create acceleration vectors by scaling unit vectors
-                acceleration_vector1 = acceleration_magnitude1 * unit_vector1
-                acceleration_vector2 = acceleration_magnitude2 * unit_vector2
-                # take current acceleration vector from all other bodies and add calulated acceleration vector to it
-                accelerations[body1] = accelerations[body1] + acceleration_vector1
-                accelerations[body2] = accelerations[body2] + acceleration_vector2
-            #for k,v in accelerations.items(): print(k,'\n', v, '\n')
-                
+    # draw bodies and then body paths
+    for frame in frames_list:
+        if frame == frames_list[0]:
+            for body in frame:
+                pygame.draw.circle(screen, body.color, (body.x, body.y), body.radius)
+        else:
+            print('frame')
+            for body in frame:
+                pygame.draw.circle(screen, body.color, (body.x, body.y), 1)
+    
+    # draw bodies
+    # for body in bodies:
+    #     pygame.draw.circle(screen, body.color, (body.x, body.y), body.radius)
 
-        # apply accelerations to each body
-        for body in bodies:
-            body.velocity = body.velocity + accelerations[body]
-        # apply velocities to each body
-        for body in bodies:
-            body.x += body.velocity.x
-            body.y += body.velocity.y
+    # only apply forces if the game is not paused
+    if pause == False and counter%wait==0:
+        # generate frames list if necessary
+        if frames_list == []:
+            frames_list = generate_frames_list(bodies, G, frames)
+            # for f in frames_list:
+            #     for b in f:
+            #         print(b)
+            # print()
+        # generate next frame from the last element of the list and add it to the end
+        next_frame = generate_next_frame(frames_list[-1], G)
+        frames_list.append(next_frame)
+        # pop off first frame and use it
+        current_frame = frames_list.pop(0)
+        bodies = current_frame
+
 
     # debugging code
     """
@@ -184,7 +179,7 @@ while running:
     pygame.draw.line(screen, 'red', (b3.x, b3.y), (b3.x+unit_vector.x, b3.y+unit_vector.y))
     """
 
-    # menu mainloop
+    # menu updating
     if menu.is_enabled():
         menu.update(events)
         menu.draw(screen)
@@ -193,7 +188,7 @@ while running:
     pygame.display.update()
     pygame.display.flip()
 
-    # limits FPS to 60
+    # limits FPS to FPS
     clock.tick(FPS)  
 
     # increment counter to slow the program by wait
