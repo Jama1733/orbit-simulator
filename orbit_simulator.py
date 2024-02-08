@@ -81,6 +81,23 @@ paths_length = FPS*default_paths_length
 frames = FPS*max_paths_length
 frames_list = []
 
+# set up button to center system
+center = (screen_width//2, screen_height//2)
+center_diff = (0, 0)
+def center_by_position():
+    global center
+    global center_diff
+    average_x = 0
+    average_y = 0
+    l = len(bodies)
+    for body in bodies:
+        average_x += body.x
+        average_y += body.y
+    average_x /= l
+    average_y /= l
+    center_diff = (average_x - center[0], average_y - center[1])
+menu.add.button("Center system by position", center_by_position, align = left, font_size = slider_font_size)
+
 # create generator for body colors
 # cycles through the color list
 def body_color_generator():
@@ -179,11 +196,11 @@ while running:
     for frame in frames_list[:paths_length]:
         # draw bodies
         for body in frames_list[0]:
-            pygame.draw.circle(screen, body.color, (body.x, body.y), body.radius)
+            pygame.draw.circle(screen, body.color, (body.x - center_diff[0], body.y - center_diff[1]), body.radius)
         # draw paths only if paths is True
         if paths == False: break
         for body in frame:
-                pygame.draw.circle(screen, body.color, (body.x, body.y), 1)
+                pygame.draw.circle(screen, body.color, (body.x - center_diff[0], body.y - center_diff[1]), 1)
 
     # menu updating
     if menu.is_enabled():
