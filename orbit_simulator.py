@@ -99,18 +99,6 @@ create_new_object = False
 object_created = False
 pause = False
 
-# set up bodies for test
-bodies = []
-v1 = Vector(10,0)
-b1 = Body((640, 160), 10, v1, 10, "blue")
-v2 = Vector(0,0)
-b2 = Body((640, 360), 100, v2, 20, "green")
-v3 = Vector(-10,0)
-b3 = Body((640, 560), 10, v3, 10, "red")
-bodies.append(b1)
-bodies.append(b2)
-bodies.append(b3)
-
 while running:
     # poll for events
     events = pygame.event.get()
@@ -136,6 +124,24 @@ while running:
                     menu.disable()
                 else:
                     menu.enable()
+            # r restarts the program by resetting bodies
+            if key == 114:
+                counter = 0
+    
+    # set up bodies for test only on the first frame
+    if counter == 0:
+        bodies = []
+        frames_list = []
+        v1 = Vector(10,0)
+        b1 = Body((640, 160), 10, v1, 10, "blue")
+        v2 = Vector(0,0)
+        b2 = Body((640, 360), 100, v2, 20, "green")
+        v3 = Vector(-10,0)
+        b3 = Body((640, 560), 10, v3, 10, "red")
+        bodies.append(b1)
+        bodies.append(b2)
+        bodies.append(b3)
+
 
     # fill the screen with a color to wipe away anything from last frame
     screen.fill(background_color)
