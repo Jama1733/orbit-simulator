@@ -127,6 +127,9 @@ while running:
             # r restarts the program by resetting bodies
             if key == 114:
                 counter = 0
+            # press space to pause
+            if key == 32:
+                pause = not pause
     
     # set up bodies for test only on the first frame
     if counter == 0:
