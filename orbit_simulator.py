@@ -141,7 +141,10 @@ while running:
             # get distances from center of the screen
             x_from_center = actual_mouse_pos[0] - screen_center[0]
             y_from_center = actual_mouse_pos[1] - screen_center[1]
-            mouse_pos = x_from_center + current_center[0], y_from_center + current_center[1]
+            # scale out the distance from the center of the screen so that if scale is small(zoomed out), then the distance is larger
+            # and vice versa when the scale is large and zoomed in, the distance is smaller
+            # then translate it to the current center
+            mouse_pos = x_from_center/scale + current_center[0], y_from_center/scale + current_center[1]
             # if the menu is enabled and the mouse is on it then don't start new object creation
             if not(menu.is_enabled() and actual_mouse_pos[0]<menu_width and actual_mouse_pos[1]<menu_height):
                 button = event.button
