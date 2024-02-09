@@ -26,7 +26,7 @@ body_creation_text_rect = body_creation_text.get_rect()
 
 # pygame menu setup
 menu_width = 400
-menu_height = 200
+menu_height = 500
 theme = pygame_menu.themes.Theme(background_color=background_color, border_color=black)
 menu = pygame_menu.Menu('Menu', menu_width, menu_height, position=(0,0), surface=screen, theme=theme)
 
@@ -82,6 +82,7 @@ frames = FPS*max_paths_length
 frames_list = []
 
 # set up button to center system
+# center diff represents the offset of the bodies' true positions from their visual position on the screen
 center = (screen_width//2, screen_height//2)
 center_diff = (0, 0)
 def center_by_position():
@@ -125,7 +126,8 @@ while running:
             running = False
         # only start body creation sequence if they click and a new one isn't being created
         if event.type ==  pygame.MOUSEBUTTONDOWN and create_new_object == False:
-            mouse_pos = event.pos
+            # get a mouse position properly adjusted by the current center
+            mouse_pos = (event.pos[0] + center_diff[0], event.pos[1] + center_diff[1])
             # if the menu is enabled and the mouse is on it then don't start new object creation
             if not(menu.is_enabled() and mouse_pos[0]<menu_width and mouse_pos[1]<menu_height):
                 button = event.button
