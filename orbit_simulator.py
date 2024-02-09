@@ -83,11 +83,13 @@ frames_list = []
 
 # set up button to center system
 # center diff represents the offset of the bodies' true positions from their visual position on the screen
-center = (screen_width//2, screen_height//2)
+screen_center= (screen_width//2, screen_height//2)
+current_center = screen_center
 center_diff = (0, 0)
 def center_by_position():
     global center
     global center_diff
+    global current_center
     average_x = 0
     average_y = 0
     l = len(bodies)
@@ -96,7 +98,8 @@ def center_by_position():
         average_y += body.y
     average_x /= l
     average_y /= l
-    center_diff = (average_x - center[0], average_y - center[1])
+    center_diff = (average_x - screen_center[0], average_y - screen_center[1])
+    current_center = (screen_center[0] + center_diff[0], screen_center[1] + center_diff[1])
 menu.add.button("Center system by position", center_by_position, align = left, font_size = slider_font_size)
 
 # create generator for body colors
@@ -117,6 +120,13 @@ create_new_object = False
 object_created = False
 pause = False
 
+# set up variables for zoom functionality
+scale = 1
+scale_min = 0
+scale_max = 5
+scale_decrease_factor = 0.8
+scale_increase_factor = 1.2
+
 while running:
     # poll for events
     events = pygame.event.get()
@@ -126,15 +136,26 @@ while running:
             running = False
         # only start body creation sequence if they click and a new one isn't being created
         if event.type ==  pygame.MOUSEBUTTONDOWN and create_new_object == False:
-            # get a mouse position properly adjusted by the current center
-            mouse_pos = (event.pos[0] + center_diff[0], event.pos[1] + center_diff[1])
+            # this is for use in determining where it is on the screen
+            actual_mouse_pos = event.pos
+            # get distances from center of the screen
+            x_from_center = actual_mouse_pos[0] - screen_center[0]
+            y_from_center = actual_mouse_pos[1] - screen_center[1]
+            mouse_pos = x_from_center + current_center[0], y_from_center + current_center[1]
             # if the menu is enabled and the mouse is on it then don't start new object creation
-            if not(menu.is_enabled() and mouse_pos[0]<menu_width and mouse_pos[1]<menu_height):
+            if not(menu.is_enabled() and actual_mouse_pos[0]<menu_width and actual_mouse_pos[1]<menu_height):
                 button = event.button
                 if button == 1:
                     create_new_object = True
                     object_created = False
                     pause = False
+        if event.type == pygame.MOUSEWHEEL:
+            movement = event.y
+            # allowing the scale to be adjusted multiplicatively means it can be arbitrarily small or large. really cool for a sense of scale
+            if movement > 0 and scale < scale_max:
+                scale *= scale_increase_factor
+            if movement < 0 and scale > scale_min:
+                scale *= scale_decrease_factor
         if event.type == pygame.KEYDOWN:
             # the esc key opens and closes the menu
             key = event.key
@@ -173,6 +194,7 @@ while running:
 
     # handle body creation
     if create_new_object == True:
+        # if the body hasn't been generated then do it
         if object_created == False:
             new_object = Body(mouse_pos, 10, Vector(0,0), 10, next(body_color))
             bodies.append(new_object)
@@ -182,6 +204,7 @@ while running:
             create_new_object = False
 
     # always make sure there is a frames list to be rendered so it doesn't skip
+    # anything that sets the frame list to [] is going to recalculate the body paths
     if frames_list == []:
         frames_list = generate_frames_list(bodies, G, frames)
     # only apply forces and transition frames if the game is not paused and every wait frames
@@ -198,11 +221,18 @@ while running:
     for frame in frames_list[:paths_length]:
         # draw bodies
         for body in frames_list[0]:
-            pygame.draw.circle(screen, body.color, (body.x - center_diff[0], body.y - center_diff[1]), body.radius)
+            # get the body's distance from the current center 
+            # scale that up or down
+            # then translate that to the center of the screen
+            x = scale * (body.x - current_center[0]) + screen_center[0]
+            y = scale * (body.y - current_center[1]) + screen_center[1]
+            pygame.draw.circle(screen, body.color, (x, y), body.radius * scale)
         # draw paths only if paths is True
         if paths == False: break
         for body in frame:
-                pygame.draw.circle(screen, body.color, (body.x - center_diff[0], body.y - center_diff[1]), 1)
+                x = scale * (body.x - current_center[0]) + screen_center[0]
+                y = scale * (body.y - current_center[1]) + screen_center[1]
+                pygame.draw.circle(screen, body.color, (x, y), 1)
 
     # menu updating
     if menu.is_enabled():
