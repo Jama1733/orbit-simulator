@@ -1,5 +1,6 @@
 import pygame
 import pygame_menu
+from numpy import add, subtract
 from orbit_simulator_classes import Vector, Body, generate_frames_list, generate_next_frame
 
 # pygame setup
@@ -127,6 +128,11 @@ scale_max = 5
 scale_decrease_factor = 0.8
 scale_increase_factor = 1.2
 
+# set up variables for screen dragging
+drag = False
+previous_mouse_pos = (0,0)
+current_mouse_pos = (0,0)
+
 while running:
     # poll for events
     events = pygame.event.get()
@@ -134,8 +140,15 @@ while running:
     # check for user clicking X on window and end program
         if event.type == pygame.QUIT:
             running = False
+        # drag the screen if they click and drag
+        if event.type ==  pygame.MOUSEBUTTONDOWN and event.button == 1:
+            # every time they click this button a new previous must be set at that position
+            drag_counter = 0
+            drag = True
+        if event.type ==  pygame.MOUSEBUTTONUP and event.button == 1:
+            drag = False
         # only start body creation sequence if they click and a new one isn't being created
-        if event.type ==  pygame.MOUSEBUTTONDOWN and create_new_object == False:
+        if event.type ==  pygame.MOUSEBUTTONDOWN and create_new_object == False and event.button == 3:
             # this is for use in determining where it is on the screen
             actual_mouse_pos = event.pos
             # get distances from center of the screen
@@ -173,6 +186,17 @@ while running:
             # press space to pause
             if key == 32:
                 pause = not pause
+
+    # do dragging if drag is true
+    if drag:       
+        if drag_counter == 0:
+            previous_mouse_pos = event.pos
+        current_mouse_pos = event.pos
+        mouse_pos_diff = subtract(previous_mouse_pos, current_mouse_pos)
+        mouse_pos_diff = mouse_pos_diff[0]/scale, mouse_pos_diff[1]/scale
+        current_center = add(current_center, mouse_pos_diff)
+        drag_counter += 1
+        previous_mouse_pos = current_mouse_pos
     
     # set up bodies for test only on the first frame
     if counter == 0:
