@@ -69,6 +69,7 @@ def paths_toggle_change(value):
 menu.add.toggle_switch("Body paths", default_paths, paths_toggle_change, state_values=("Off", "On"), font_size=slider_font_size, align=left)
 
 # set up toggle switch for collisions
+collision_strength = 1
 default_collisions = True
 collisions = default_collisions
 def change_collisions(value):
@@ -149,7 +150,7 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         # drag the screen if they click and drag
-        if event.type ==  pygame.MOUSEBUTTONDOWN and event.button == 1:
+        if event.type ==  pygame.MOUSEBUTTONDOWN and event.button == 1 and not(menu.is_enabled() and event.pos < (menu_width, menu_height)):
             # every time they click this button a new previous must be set at that position
             drag_counter = 0
             drag = True
@@ -167,7 +168,7 @@ while running:
             # then translate it to the current center
             mouse_pos = x_from_center/scale + current_center[0], y_from_center/scale + current_center[1]
             # if the menu is enabled and the mouse is on it then don't start new object creation
-            if not(menu.is_enabled() and actual_mouse_pos[0]<menu_width and actual_mouse_pos[1]<menu_height):
+            if not(menu.is_enabled() and event.pos < (menu_width, menu_height)):
                 create_new_object = True
         # zoom funtionality
         if event.type == pygame.MOUSEWHEEL:
@@ -238,23 +239,28 @@ while running:
     # check for collisions
     collision_occured = False
     collision_accelerations = {body: Vector(0,0) for body in bodies}
+    i = 0
     if collisions and len(bodies) > 1:
         for body1 in bodies[:-1]:
-            for body2 in bodies[1:]:
-                if body1.distance_to(body2) > body1.radius + body2.radius:
+            for body2 in bodies[1+i:]:
+                if body1.distance_to(body2) >= body1.radius + body2.radius:
                     continue
                 collision_occured = True
-                force_on_body1 = body1.velocity.inverse() * body1.mass + body2.velocity * body2.mass
-                force_on_body2 = body2.velocity.inverse() * body2.mass + body1.velocity * body1.mass
+                body1_to_body2 = body1.unit_vector_towards(body2)
+                body2_to_body1 = body2.unit_vector_towards(body1)
+                force_on_body1 = body2.velocity * body2.mass
+                force_on_body2 = body1.velocity * body1.mass
                 acceleration_on_body1 = force_on_body1/body1.mass
                 acceleration_on_body2 = force_on_body2/body2.mass
-                collision_accelerations[body1] += acceleration_on_body1
-                collision_accelerations[body2] += acceleration_on_body2
+                collision_accelerations[body1] += collision_strength * acceleration_on_body1
+                collision_accelerations[body2] += collision_strength * acceleration_on_body2
+            i += 1
     # apply collision velocities
-    for body in bodies:
-        body.velocity += collision_accelerations[body]
     if collision_occured:
         frames_list = []
+        for body in bodies:
+            body.velocity += collision_accelerations[body]
+    print(bodies[0].velocity.angle())
 
     # always make sure there is a frames list to be rendered so it doesn't skip
     # anything that sets the frame list to [] is going to recalculate the body paths

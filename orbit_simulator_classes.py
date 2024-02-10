@@ -38,11 +38,21 @@ class Vector:
         self.y = round(self.y/i)
         return self
     
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Vector: x: {self.x}, y: {self.y}"
     
     def inverse(self):
         return(Vector(self.x*-1, self.y*-1))
+    
+    def magnitude(self) -> float:
+        return sqrt(self.x**2+self.y**2)
+    
+    def angle(self) -> float:
+        v = self.magnitude()
+        if self.y >= 0:
+            return asin(self.y/v)
+        else:
+            return asin(self.y/v) + pi
 
 class Body:
     def __init__(self, pos: tuple, mass: int, velocity: Vector, radius: int, color: str) -> None:
@@ -54,6 +64,9 @@ class Body:
         self.radius = radius
         self.color = color
 
+    def __repr__(self):
+        return f"Body: x: {self.x}, y: {self.y}, mass: {self.mass}, velocity: {self.velocity}"
+    
     # return distance to other body
     def distance_to(self, body2) -> float:
         x2, y2 = body2.x, body2.y
@@ -76,9 +89,6 @@ class Body:
             a_sign = 1
         unit_vector = Vector(cos(theta) * a_sign, sin(theta))
         return unit_vector
-    
-    def __repr__(self):
-        return f"Body: x: {self.x}, y: {self.y}, mass: {self.mass}, velocity: {self.velocity}"
 
 
 # get acceleration vectors on each body due to gravity
