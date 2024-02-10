@@ -60,13 +60,21 @@ G_max = 10
 G = 1
 menu.add.range_slider("Gravitational Constant G", 1, (G_min, G_max), 1, G_slider_change, font_size=slider_font_size, width=slider_width, align=left)
 
-# setup toggle switch for toggling body paths
+# set up toggle switch for toggling body paths
 default_paths = False
 def paths_toggle_change(value):
     global paths
     if value == "Off": paths = False
     else: paths = True
 menu.add.toggle_switch("Body paths", default_paths, paths_toggle_change, state_values=("Off", "On"), font_size=slider_font_size, align=left)
+
+# set up toggle switch for collisions
+default_collisions = True
+collisions = default_collisions
+def change_collisions(value):
+    global collisions
+    collisions = not collisions
+menu.add.toggle_switch("Collisions", default_collisions, change_collisions, state_values=("Off", "On"), font_size= slider_font_size, align = left)
 
 # body path length slider setup
 default_paths_length = 1
@@ -226,6 +234,27 @@ while running:
             frames_list=[]
         else:
             create_new_object = False
+
+    # check for collisions
+    collision_occured = False
+    collision_accelerations = {body: Vector(0,0) for body in bodies}
+    if collisions and len(bodies) > 1:
+        for body1 in bodies[:-1]:
+            for body2 in bodies[1:]:
+                if body1.distance_to(body2) > body1.radius + body2.radius:
+                    continue
+                collision_occured = True
+                force_on_body1 = body1.velocity.inverse() * body1.mass + body2.velocity * body2.mass
+                force_on_body2 = body2.velocity.inverse() * body2.mass + body1.velocity * body1.mass
+                acceleration_on_body1 = force_on_body1/body1.mass
+                acceleration_on_body2 = force_on_body2/body2.mass
+                collision_accelerations[body1] += acceleration_on_body1
+                collision_accelerations[body2] += acceleration_on_body2
+    # apply collision velocities
+    for body in bodies:
+        body.velocity += collision_accelerations[body]
+    if collision_occured:
+        frames_list = []
 
     # always make sure there is a frames list to be rendered so it doesn't skip
     # anything that sets the frame list to [] is going to recalculate the body paths

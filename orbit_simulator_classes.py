@@ -40,6 +40,9 @@ class Vector:
     
     def __repr__(self):
         return f"Vector: x: {self.x}, y: {self.y}"
+    
+    def inverse(self):
+        return(Vector(self.x*-1, self.y*-1))
 
 class Body:
     def __init__(self, pos: tuple, mass: int, velocity: Vector, radius: int, color: str) -> None:
@@ -52,7 +55,7 @@ class Body:
         self.color = color
 
     # return distance to other body
-    def distance_to(self, body2):
+    def distance_to(self, body2) -> float:
         x2, y2 = body2.x, body2.y
         # x and y distances between objects
         x_diff = self.x - x2
@@ -79,7 +82,7 @@ class Body:
 
 
 # get acceleration vectors on each body due to gravity
-def acceleration_vectors(body1, body2, G):
+def acceleration_vectors(body1, body2, G) -> tuple[Vector]:
     # get masses
     mass1 = body1.mass
     mass2 = body2.mass
@@ -98,7 +101,7 @@ def acceleration_vectors(body1, body2, G):
     return acceleration_vector1, acceleration_vector2
 
 # take in a list of bodies and apply all of the appropriate forces to their current velocities and then adjust positions to get next frame of new_bodies
-def generate_next_frame(bodies: list, G) -> list:
+def generate_next_frame(bodies: list, G) -> list[Body]:
     # can't use bodies because it's passed by reference
     # learned that the hard way LMAO couldn't figure out how the simulator was working without the frames list working: bodies was being modified in place!!!
     # can't reassign it because it keeps the references
@@ -140,7 +143,7 @@ def generate_next_frame(bodies: list, G) -> list:
 
 # generate list of n frames into the future
 # each list of frames is a list of new_bodies in that frame 
-def generate_frames_list(bodies: list, G,  n: int) -> list:
+def generate_frames_list(bodies: list, G,  n: int) -> list[list[Body]]:
     # set up frames list and generate first frame to be used for the rest
     frames_list = []
     frames_list.append(generate_next_frame(bodies, G))
