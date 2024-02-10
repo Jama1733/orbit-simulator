@@ -1,7 +1,10 @@
 import pygame
 import pygame_menu
 from numpy import add, subtract
+from math import sin, cos
 from orbit_simulator_classes import Vector, Body, generate_frames_list, generate_next_frame
+
+
 
 # pygame setup
 pygame.init()
@@ -55,10 +58,12 @@ def G_slider_change(value):
     global frames_list
     G = value
     frames_list = []
+G_default = 0.1
+G = G_default
 G_min = 0
-G_max = 10
-G = 1
-menu.add.range_slider("Gravitational Constant G", 1, (G_min, G_max), 1, G_slider_change, font_size=slider_font_size, width=slider_width, align=left)
+G_max = 0.5
+G_increment = 0.01
+menu.add.range_slider("Gravitational Constant G", G_default, (G_min, G_max), G_increment, G_slider_change, font_size=slider_font_size, width=slider_width, align=left)
 
 # set up toggle switch for toggling body paths
 default_paths = False
@@ -68,22 +73,22 @@ def paths_toggle_change(value):
     else: paths = True
 menu.add.toggle_switch("Body paths", default_paths, paths_toggle_change, state_values=("Off", "On"), font_size=slider_font_size, align=left)
 
+# body path length slider setup
+default_paths_length = 2
+max_paths_length = 40
+def paths_length_change(value):
+    global paths_length
+    paths_length = round(value*FPS)
+menu.add.range_slider("Path length", default_paths_length, (1/FPS, max_paths_length), 1, paths_length_change, width=slider_width, align=left, font_size=slider_font_size)
+
 # set up toggle switch for collisions
-collision_strength = 1
+collision_strength = 0.1
 default_collisions = True
 collisions = default_collisions
 def change_collisions(value):
     global collisions
     collisions = not collisions
 menu.add.toggle_switch("Collisions", default_collisions, change_collisions, state_values=("Off", "On"), font_size= slider_font_size, align = left)
-
-# body path length slider setup
-default_paths_length = 1
-max_paths_length = 20
-def paths_length_change(value):
-    global paths_length
-    paths_length = round(value*FPS)
-menu.add.range_slider("Path length", default_paths_length, (1/FPS, max_paths_length), 1, paths_length_change, width=slider_width, align=left, font_size=slider_font_size)
 
 # set up variables for path generation
 paths = default_paths
@@ -208,11 +213,11 @@ while running:
     if counter == 0:
         bodies = []
         frames_list = []
-        v1 = Vector(10,0)
+        v1 = Vector(1,0)
         b1 = Body((640, 160), 10, v1, 10, "blue")
         v2 = Vector(0,0)
         b2 = Body((640, 360), 100, v2, 20, "green")
-        v3 = Vector(-10,0)
+        v3 = Vector(-1,0)
         b3 = Body((640, 560), 10, v3, 10, "red")
         bodies.append(b1)
         bodies.append(b2)
@@ -240,7 +245,7 @@ while running:
     collision_occured = False
     collision_accelerations = {body: Vector(0,0) for body in bodies}
     i = 0
-    if collisions and len(bodies) > 1:
+    if collisions and len(bodies) > 1 and counter % 10:
         for body1 in bodies[:-1]:
             for body2 in bodies[1+i:]:
                 if body1.distance_to(body2) >= body1.radius + body2.radius:
@@ -248,19 +253,26 @@ while running:
                 collision_occured = True
                 body1_to_body2 = body1.unit_vector_towards(body2)
                 body2_to_body1 = body2.unit_vector_towards(body1)
-                force_on_body1 = body2.velocity * body2.mass
-                force_on_body2 = body1.velocity * body1.mass
-                acceleration_on_body1 = force_on_body1/body1.mass
-                acceleration_on_body2 = force_on_body2/body2.mass
+                body1_velocity_offset = body1.velocity.angle() - body1_to_body2.angle()
+                body2_velocity_offset = body2.velocity.angle() - body2_to_body1.angle()
+                # this first force represents the oppositional force on this body from it's own momentum
+                forces_on_body1 = body2_to_body1 * body1.mass * cos(body1_velocity_offset)
+                forces_on_body2 = body1_to_body2 * body2.mass * cos(body2_velocity_offset)
+                # the second one represents the force the other body is actually exerting on it
+                forces_on_body1 += body2_to_body1 * body2.mass * cos(body2_velocity_offset)
+                forces_on_body2 += body1_to_body2 * body1.mass * cos(body1_velocity_offset)
+                acceleration_on_body1 = forces_on_body1/body1.mass
+                acceleration_on_body2 = forces_on_body2/body2.mass
                 collision_accelerations[body1] += collision_strength * acceleration_on_body1
                 collision_accelerations[body2] += collision_strength * acceleration_on_body2
+                print(body1, body2, '\n')
+                #for a,b in collision_accelerations.items(): print(a, '\n', b, '\n\n')
             i += 1
     # apply collision velocities
     if collision_occured:
         frames_list = []
         for body in bodies:
             body.velocity += collision_accelerations[body]
-    print(bodies[0].velocity.angle())
 
     # always make sure there is a frames list to be rendered so it doesn't skip
     # anything that sets the frame list to [] is going to recalculate the body paths
