@@ -160,11 +160,8 @@ while running:
             mouse_pos = x_from_center/scale + current_center[0], y_from_center/scale + current_center[1]
             # if the menu is enabled and the mouse is on it then don't start new object creation
             if not(menu.is_enabled() and actual_mouse_pos[0]<menu_width and actual_mouse_pos[1]<menu_height):
-                button = event.button
-                if button == 1:
-                    create_new_object = True
-                    object_created = False
-                    pause = False
+                create_new_object = True
+        # zoom funtionality
         if event.type == pygame.MOUSEWHEEL:
             movement = event.y
             # allowing the scale to be adjusted multiplicatively means it can be arbitrarily small or large. really cool for a sense of scale
