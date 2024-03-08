@@ -90,6 +90,11 @@ class Body:
         unit_vector = Vector(cos(theta) * a_sign, sin(theta))
         return unit_vector
 
+# adjusts body position to be displayed properly
+def adjust_position(body: Body, scale, current_center, screen_center):
+    x = scale * (body.x - current_center[0]) + screen_center[0]
+    y = scale * (body.y - current_center[1]) + screen_center[1]
+    return x, y
 
 # get acceleration vectors on each body due to gravity
 def acceleration_vectors(body1, body2, G) -> tuple[Vector]:

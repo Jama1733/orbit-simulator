@@ -1,7 +1,7 @@
 import pygame
 import pygame_menu
 from numpy import add, subtract
-from orbit_simulator_classes import Vector, Body, generate_frames_list, generate_next_frame
+from orbit_simulator_classes import Vector, Body, generate_frames_list, generate_next_frame, adjust_position
 
 # pygame setup
 pygame.init()
@@ -282,14 +282,12 @@ while running:
             # get the body's distance from the current center 
             # scale that up or down
             # then translate that to the center of the screen
-            x = scale * (body.x - current_center[0]) + screen_center[0]
-            y = scale * (body.y - current_center[1]) + screen_center[1]
+            x, y = adjust_position(body, scale, current_center, screen_center)
             pygame.draw.circle(screen, body.color, (x, y), body.radius * scale)
         # draw paths only if paths is True
         if paths == False: break
         for body in frame:
-                x = scale * (body.x - current_center[0]) + screen_center[0]
-                y = scale * (body.y - current_center[1]) + screen_center[1]
+                x, y = adjust_position(body, scale, current_center, screen_center)
                 pygame.draw.circle(screen, body.color, (x, y), 1)
 
     # menu updating
