@@ -129,6 +129,7 @@ body_color = body_color_generator()
 create_new_object = False
 object_created = False
 pause = False
+enter = False
 
 # set up variables for zoom functionality
 scale = 1
@@ -141,6 +142,8 @@ scale_increase_factor = 1.2
 drag = False
 previous_mouse_pos = (0,0)
 current_mouse_pos = (0,0)
+
+
 
 while running:
     # poll for events
@@ -192,6 +195,8 @@ while running:
             # press space to pause
             if key == 32:
                 pause = not pause
+            if key == 13:
+                enter = True
 
     # do dragging if drag is true
     if drag:       
