@@ -26,10 +26,13 @@ body_creation_text = font.render("Scroll to adjust size\nUse + and - to change m
 body_creation_text_rect = body_creation_text.get_rect()
 
 # pygame menu setup
+theme = pygame_menu.themes.Theme(background_color=background_color, border_color=black)
 menu_width = 400
 menu_height = 500
-theme = pygame_menu.themes.Theme(background_color=background_color, border_color=black)
 menu = pygame_menu.Menu('Menu', menu_width, menu_height, position=(0,0), surface=screen, theme=theme)
+body_creation_menu_width = 200
+body_creation_menu_height = 300
+body_creation_menu = pygame_menu.Menu('Body Creation Menu', body_creation_menu_width, body_creation_menu_height, surface=screen, theme=theme)
 
 # slider setup
 slider_font_size=15
@@ -39,6 +42,17 @@ left = pygame_menu.locals.ALIGN_LEFT
 # set up variables for slowing the progression of time
 counter = 0
 wait = 1
+
+# body creation mass slider setup
+default_mass = 10
+max_mass = 100
+body_creation_mass = default_mass
+def body_creation_mass_change(value):
+    global body_creation_mass
+    global bodies
+    bodies[-1].mass = value
+    body_creation_mass = value
+body_creation_menu.add.range_slider("Mass", default_mass, (0, max_mass), 1, body_creation_mass_change, font_size= slider_font_size, width=slider_width, align=left)
 
 # speed slider setup
 default_speed = 10
@@ -56,30 +70,31 @@ def G_slider_change(value):
     G = value
     frames_list = []
 G_min = 0
-G_max = 10
-G = 1
-menu.add.range_slider("Gravitational Constant G", 1, (G_min, G_max), 1, G_slider_change, font_size=slider_font_size, width=slider_width, align=left)
-
-# set up toggle switch for toggling body paths
-default_paths = False
-def paths_toggle_change(value):
-    global paths
-    if value == "Off": paths = False
-    else: paths = True
-menu.add.toggle_switch("Body paths", default_paths, paths_toggle_change, state_values=("Off", "On"), font_size=slider_font_size, align=left)
+G_max = 2
+G = 0.2
+menu.add.range_slider("Gravitational Constant G", G, (G_min, G_max), G, G_slider_change, font_size=slider_font_size, width=slider_width, align=left)
 
 # set up toggle switch for collisions
-collision_strength = 1
-default_collisions = True
+recent_collision = 0
+collision_strength = 0.5
+default_collisions = False
 collisions = default_collisions
 def change_collisions(value):
     global collisions
     collisions = not collisions
 menu.add.toggle_switch("Collisions", default_collisions, change_collisions, state_values=("Off", "On"), font_size= slider_font_size, align = left)
 
+# set up toggle switch for toggling body paths
+default_paths = True
+def paths_toggle_change(value):
+    global paths
+    if value == "Off": paths = False
+    else: paths = True
+menu.add.toggle_switch("Body paths", default_paths, paths_toggle_change, state_values=("Off", "On"), font_size=slider_font_size, align=left)
+
 # body path length slider setup
-default_paths_length = 1
-max_paths_length = 20
+default_paths_length = 5
+max_paths_length = 40
 def paths_length_change(value):
     global paths_length
     paths_length = round(value*FPS)
@@ -198,6 +213,20 @@ while running:
             if key == 13:
                 enter = True
 
+    # set up bodies for test only on the first frame
+    if counter == 0:
+        bodies = []
+        frames_list = []
+        v1 = Vector(4,0)
+        b1 = Body((640, 160), 10, v1, 10, "blue")
+        v2 = Vector(0,0)
+        b2 = Body((640, 360), 100, v2, 20, "green")
+        v3 = Vector(-4,0)
+        b3 = Body((640, 560), 10, v3, 10, "red")
+        bodies.append(b1)
+        bodies.append(b2)
+        bodies.append(b3)
+
     # do dragging if drag is true
     if drag:       
         if drag_counter == 0:
@@ -209,20 +238,6 @@ while running:
         drag_counter += 1
         previous_mouse_pos = current_mouse_pos
     
-    # set up bodies for test only on the first frame
-    if counter == 0:
-        bodies = []
-        frames_list = []
-        v1 = Vector(10,0)
-        b1 = Body((640, 160), 10, v1, 10, "blue")
-        v2 = Vector(0,0)
-        b2 = Body((640, 360), 100, v2, 20, "green")
-        v3 = Vector(-10,0)
-        b3 = Body((640, 560), 10, v3, 10, "red")
-        bodies.append(b1)
-        bodies.append(b2)
-        bodies.append(b3)
-
 
     # fill the screen with a color to wipe away anything from last frame
     screen.fill(background_color)
@@ -232,6 +247,8 @@ while running:
 
     # handle body creation
     if create_new_object == True:
+        body_creation_menu.enable()
+        pause = True
         # if the body hasn't been generated then do it
         if object_created == False:
             new_object = Body(mouse_pos, 10, Vector(0,0), 10, next(body_color))
@@ -239,13 +256,17 @@ while running:
             object_created = True
             frames_list=[]
         else:
-            create_new_object = False
-
+            if enter:
+                create_new_object = False
+                pause = False
+                enter = False
+    
     # check for collisions
     collision_occured = False
     collision_accelerations = {body: Vector(0,0) for body in bodies}
     i = 0
-    if collisions and len(bodies) > 1:
+    # recent_collision makes it so collisions don't happen again for a few frames
+    if collisions and len(bodies) > 1 and counter - recent_collision > 5:
         for body1 in bodies[:-1]:
             for body2 in bodies[1+i:]:
                 if body1.distance_to(body2) >= body1.radius + body2.radius:
@@ -262,8 +283,10 @@ while running:
             i += 1
     # apply collision velocities and reset frames list
     if collision_occured:
+        recent_collision = counter
         frames_list = []
         for body in bodies:
+            print(body,collision_accelerations[body])
             body.velocity += collision_accelerations[body]
 
     # always make sure there is a frames list to be rendered so it doesn't skip
