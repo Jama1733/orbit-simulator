@@ -260,6 +260,7 @@ while running:
                 create_new_object = False
                 pause = False
                 enter = False
+                object_created = False
     
     # check for collisions
     collision_occured = False
