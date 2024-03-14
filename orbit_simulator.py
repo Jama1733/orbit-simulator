@@ -70,9 +70,9 @@ def G_slider_change(value):
     G = value
     frames_list = []
 G_min = 0
-G_max = 2
+G_max = 4
 G = 0.2
-menu.add.range_slider("Gravitational Constant G", G, (G_min, G_max), G, G_slider_change, font_size=slider_font_size, width=slider_width, align=left)
+menu.add.range_slider("Gravitational Constant G", G, (G_min, G_max), 0.01, G_slider_change, font_size=slider_font_size, width=slider_width, align=left)
 
 # set up toggle switch for collisions
 recent_collision = 0
@@ -139,6 +139,7 @@ def body_color_generator():
         else:
             index = 0
 body_color = body_color_generator()
+next(body_color)
 
 # set up booleans for body generation
 create_new_object = False
@@ -256,7 +257,7 @@ while running:
             object_created = True
             frames_list=[]
         else:
-            if enter:
+            if not enter:
                 create_new_object = False
                 pause = False
                 enter = False
